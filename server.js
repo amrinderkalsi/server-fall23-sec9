@@ -1,4 +1,9 @@
-const express = require('express');
+import express from 'express';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
+import { readFile } from 'node:fs/promises';
+import { GraphQLScalarType } from 'graphql';
+
 const app = express();
 
 app.use(express.json());
@@ -42,6 +47,44 @@ app.post('/api/issues', (req, res) => {
   console.log('res.json', newIssue);
   res.json(newIssue);
 });
+
+const GraphQlDateResolver = new GraphQLScalarType({
+  name: 'GraphQlDate',
+  description: 'A GraphQl Date Type',
+  serialize(value) {
+    return value.toISOString();
+  },
+  parseValue(value) {
+    const newDate = new Date(value);
+    return isNaN(newDate) ? undefined : newDate;
+  }
+});
+
+const typeDefs = await readFile('./schema.graphql', 'utf8');
+
+const resolvers = {
+  Query: {
+    name: () => 'Erick',
+    issueList: () => {
+      return issues;
+    }
+  },
+  Mutation: {
+    sendName: (_root, {name}) => {
+      return name + '!' 
+    }
+  },
+  GraphQlDate: GraphQlDateResolver
+};
+
+const apolloServer = new ApolloServer({
+  typeDefs,
+  resolvers
+});
+
+await apolloServer.start();
+
+app.use('/graphql', expressMiddleware(apolloServer));
 
 app.listen(5001, () => {
     console.log('Server started on port 5001');
