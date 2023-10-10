@@ -32,6 +32,16 @@ app.get('/api/issues', (req, res) => {
     });
 });
 
+app.post('/api/issues', (req, res) => {
+  console.log('req.body',req.body);
+  const newIssue = req.body;
+  newIssue.id = issues.length + 1;
+  newIssue.status = 'New';
+  newIssue.created = new Date();
+  issues.push(newIssue);
+  console.log('res.json', newIssue);
+  res.json(newIssue);
+});
 
 app.listen(5001, () => {
     console.log('Server started on port 5001');
