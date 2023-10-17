@@ -15,6 +15,15 @@ type Query {
     issueList: [Issue]
 }
 
+input IssueInputs {
+    status: String 
+    owner: String
+    effort: String 
+    completionDate: GraphQlDate
+    title: String
+}
+
 type Mutation {
     sendName(name: String): String
+    issueAdd(issue: IssueInputs): Issue
 }
