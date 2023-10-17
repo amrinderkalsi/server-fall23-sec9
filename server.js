@@ -3,50 +3,33 @@ import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { readFile } from 'node:fs/promises';
 import { GraphQLScalarType } from 'graphql';
+import { connectToDb, getDb,} from './db.js'
+
+let db;
 
 const app = express();
 
 app.use(express.json());
 
-const issues = [
-    {
-      id: 1, 
-      status: 'Open', 
-      owner: 'Ravan',
-      created: new Date('2016-08-15'), 
-      effort: 5, 
-      completionDate: undefined,
-      title: 'Error in console when clicking Add',
-    },
-    {
-      id: 2, 
-      status: 'Assigned', 
-      owner: 'Eddie',
-      created: new Date('2016-08-16'), 
-      effort: 14, 
-      completionDate: new Date('2016-08-30'),
-      title: 'Missing bottom border on panel',
-    },
-];
-app.get('/api/issues', (req, res) => {
-    console.log('New Request');
-    const metaData = {totalCount: issues.length};
-    res.json({
-        "metaData": metaData,
-        "records": issues
-    });
-});
+// app.get('/api/issues', (req, res) => {
+//     console.log('New Request');
+//     const metaData = {totalCount: issues.length};
+//     res.json({
+//         "metaData": metaData,
+//         "records": issues
+//     });
+// });
 
-app.post('/api/issues', (req, res) => {
-  console.log('req.body',req.body);
-  const newIssue = req.body;
-  newIssue.id = issues.length + 1;
-  newIssue.status = 'New';
-  newIssue.created = new Date();
-  issues.push(newIssue);
-  console.log('res.json', newIssue);
-  res.json(newIssue);
-});
+// app.post('/api/issues', (req, res) => {
+//   console.log('req.body',req.body);
+//   const newIssue = req.body;
+//   newIssue.id = issues.length + 1;
+//   newIssue.status = 'New';
+//   newIssue.created = new Date();
+//   issues.push(newIssue);
+//   console.log('res.json', newIssue);
+//   res.json(newIssue);
+// });
 
 const GraphQlDateResolver = new GraphQLScalarType({
   name: 'GraphQlDate',
@@ -62,12 +45,15 @@ const GraphQlDateResolver = new GraphQLScalarType({
 
 const typeDefs = await readFile('./schema.graphql', 'utf8');
 
+const issueList = async () => {
+  const issue = db.collection('issues').find({}).toArray();
+  return issue
+}
+
 const resolvers = {
   Query: {
     name: () => 'Erick',
-    issueList: () => {
-      return issues;
-    }
+    issueList: issueList
   },
   Mutation: {
     sendName: (_root, {name}) => {
@@ -93,6 +79,13 @@ await apolloServer.start();
 
 app.use('/graphql', expressMiddleware(apolloServer));
 
-app.listen(5001, () => {
-    console.log('Server started on port 5001');
+connectToDb((url, err) => {
+  if (!err) {
+    app.listen(5001, () => {
+        console.log('Server started on port 5001');
+        console.log('GraphQl Server started on http://localhost:5001/graphql');
+        console.log('Connected to MongoDb at ', url);
+    });
+    db = getDb();
+  }
 });
